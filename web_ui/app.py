@@ -336,6 +336,64 @@ async def get_provider():
         "routing_ignore":  ",".join(rt.get("ignore", [])),
     }
 
+@app.get("/api/provider/models")
+async def get_provider_models(source: str = "openrouter"):
+    """
+    Fetch live model list from OpenRouter or Nous Portal.
+    source: "openrouter" | "nous" | "custom"  (custom uses base_url + key from config)
+    """
+    env = read_env()
+    cfg = read_config()
+
+    if source == "nous":
+        auth  = read_auth()
+        token = auth.get("providers", {}).get("nous", {}).get("access_token", "")
+        if not token:
+            raise HTTPException(401, "Not logged in to Nous Portal")
+        base_url = "https://inference-api.nousresearch.com/v1"
+        headers  = {"Authorization": f"Bearer {token}"}
+    elif source == "custom":
+        base_url = cfg.get("model", {}).get("base_url", "").rstrip("/")
+        if not base_url:
+            raise HTTPException(400, "No custom base URL configured")
+        key     = env.get("OPENROUTER_API_KEY", "")
+        headers = {"Authorization": f"Bearer {key}"} if key else {}
+    else:  # openrouter
+        base_url = "https://openrouter.ai/api/v1"
+        key      = env.get("OPENROUTER_API_KEY", "")
+        headers  = {"Authorization": f"Bearer {key}"} if key else {}
+
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.get(f"{base_url}/models", headers=headers)
+        if r.status_code != 200:
+            raise HTTPException(r.status_code, f"Upstream error: {r.text[:300]}")
+        raw = r.json()
+
+    # Normalise to [{id, name, context_length, prompt_price, completion_price, description}]
+    items = raw.get("data", raw) if isinstance(raw, dict) else raw
+    models = []
+    for m in items:
+        if not isinstance(m, dict):
+            continue
+        pricing = m.get("pricing", {})
+        try:
+            pp = float(pricing.get("prompt",     0)) * 1_000_000
+            cp = float(pricing.get("completion", 0)) * 1_000_000
+        except (TypeError, ValueError):
+            pp = cp = 0.0
+        models.append({
+            "id":              m.get("id", ""),
+            "name":            m.get("name", m.get("id", "")),
+            "context_length":  m.get("context_length", 0),
+            "prompt_price":    round(pp, 4),
+            "completion_price": round(cp, 4),
+            "description":     (m.get("description") or "")[:120],
+        })
+
+    models.sort(key=lambda x: x["name"].lower())
+    return {"models": models, "count": len(models)}
+
+
 @app.post("/api/provider")
 async def set_provider(p: ProviderIn):
     cfg = read_config()

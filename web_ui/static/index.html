@@ -86,6 +86,27 @@ button.danger{background:var(--red)}
 .save-msg.show{opacity:1}
 .mcp-item{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px}
 .mcp-item .mcp-fields{flex:1;display:grid;grid-template-columns:1fr 2fr;gap:8px}
+
+/* Model picker */
+.model-picker{position:relative}
+.model-picker-input-row{display:flex;gap:8px;align-items:center}
+.model-picker-input-row input{flex:1}
+.model-search-wrap{position:relative;margin-top:10px;display:none}
+.model-search-wrap.open{display:block}
+.model-search{width:100%;background:var(--input-bg);border:1px solid var(--accent);color:var(--text);border-radius:6px 6px 0 0;padding:8px 10px;font-size:13px;outline:none}
+.model-list{background:var(--input-bg);border:1px solid var(--accent);border-top:none;border-radius:0 0 6px 6px;max-height:320px;overflow-y:auto}
+.model-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s}
+.model-item:last-child{border-bottom:none}
+.model-item:hover,.model-item.focused{background:rgba(139,92,246,.12)}
+.model-item-name{font-size:13px;font-weight:500;color:var(--text)}
+.model-item-id{font-size:11px;color:var(--muted);margin-top:1px;font-family:monospace}
+.model-item-meta{display:flex;gap:12px;margin-top:3px}
+.model-meta-chip{font-size:10px;color:var(--muted);background:#0e0e12;border:1px solid var(--border);border-radius:3px;padding:1px 5px}
+.model-meta-chip.price{color:var(--accent2)}
+.model-count{font-size:11px;color:var(--muted);padding:6px 12px;border-bottom:1px solid var(--border)}
+.model-loading{padding:20px;text-align:center;color:var(--muted);font-size:13px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -187,7 +208,18 @@ button.danger{background:var(--red)}
       <input type="text" id="prov-base" placeholder="https://api.example.com/v1" />
     </div>
     <label>Default Model</label>
-    <input type="text" id="prov-model" placeholder="anthropic/claude-opus-4-6" />
+    <div class="model-picker">
+      <div class="model-picker-input-row">
+        <input type="text" id="prov-model" placeholder="anthropic/claude-opus-4-6" autocomplete="off" onfocus="openModelPicker()" />
+        <button class="sec" id="btn-fetch-models" onclick="fetchModels()" title="Fetch models from provider">
+          <span id="fetch-icon">⟳</span> Fetch
+        </button>
+      </div>
+      <div class="model-search-wrap" id="model-search-wrap">
+        <input class="model-search" id="model-search" placeholder="Search models…" oninput="filterModels()" onkeydown="modelKeyNav(event)" autocomplete="off" />
+        <div class="model-list" id="model-list"></div>
+      </div>
+    </div>
   </div>
   <div class="card" id="routing-card">
     <div class="card-title">OpenRouter Routing</div>
@@ -952,16 +984,19 @@ async function saveORKey() {
 }
 
 /* ── Provider ── */
+let _allModels   = [];   // full fetched list
+let _focusedIdx  = -1;
+
 async function loadProvider() {
   try {
     const d = await api('GET', '/api/provider');
-    document.getElementById('prov-type').value  = d.type;
-    document.getElementById('prov-model').value = d.model;
-    document.getElementById('rt-sort').value    = d.routing_sort;
-    document.getElementById('rt-data').value    = d.routing_data;
+    document.getElementById('prov-type').value    = d.type;
+    document.getElementById('prov-model').value   = d.model;
+    document.getElementById('rt-sort').value      = d.routing_sort;
+    document.getElementById('rt-data').value      = d.routing_data;
     document.getElementById('rt-require').checked = d.routing_require;
-    document.getElementById('rt-only').value    = d.routing_only;
-    document.getElementById('rt-ignore').value  = d.routing_ignore;
+    document.getElementById('rt-only').value      = d.routing_only;
+    document.getElementById('rt-ignore').value    = d.routing_ignore;
     if (d.type === 'custom') document.getElementById('prov-base').value = d.base_url;
     onProvTypeChange();
   } catch(e) { console.error(e); }
@@ -972,7 +1007,130 @@ function onProvTypeChange() {
   document.getElementById('prov-base-row').style.display   = t === 'custom' ? '' : 'none';
   document.getElementById('prov-apikey-row').style.display = t === 'nous'   ? 'none' : '';
   document.getElementById('routing-card').style.display    = t === 'nous'   ? 'none' : '';
+  // clear cached model list when provider type changes
+  _allModels  = [];
+  _focusedIdx = -1;
+  closeModelPicker();
 }
+
+function openModelPicker() {
+  document.getElementById('model-search-wrap').classList.add('open');
+  if (_allModels.length) {
+    document.getElementById('model-search').value = '';
+    renderModelList(_allModels);
+  }
+}
+
+function closeModelPicker() {
+  document.getElementById('model-search-wrap').classList.remove('open');
+}
+
+async function fetchModels() {
+  const type  = document.getElementById('prov-type').value;
+  const icon  = document.getElementById('fetch-icon');
+  const btn   = document.getElementById('btn-fetch-models');
+  const list  = document.getElementById('model-list');
+  const wrap  = document.getElementById('model-search-wrap');
+
+  wrap.classList.add('open');
+  list.innerHTML = '<div class="model-loading"><span class="spinner"></span>Fetching models…</div>';
+  icon.innerHTML = '<span class="spinner"></span>';
+  btn.disabled   = true;
+
+  try {
+    const source = type === 'nous' ? 'nous' : type === 'custom' ? 'custom' : 'openrouter';
+    const d = await api('GET', `/api/provider/models?source=${source}`);
+    _allModels  = d.models || [];
+    _focusedIdx = -1;
+    document.getElementById('model-search').value = '';
+    renderModelList(_allModels);
+  } catch(e) {
+    list.innerHTML = `<div class="model-loading" style="color:var(--red)">Error: ${escHtml(e.message)}</div>`;
+  } finally {
+    icon.innerHTML = '⟳';
+    btn.disabled   = false;
+  }
+}
+
+function filterModels() {
+  const q = document.getElementById('model-search').value.toLowerCase();
+  _focusedIdx = -1;
+  const filtered = q ? _allModels.filter(m =>
+    m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q)
+  ) : _allModels;
+  renderModelList(filtered);
+}
+
+function renderModelList(models) {
+  const list = document.getElementById('model-list');
+  if (!models.length) {
+    list.innerHTML = '<div class="model-loading">No models found.</div>';
+    return;
+  }
+  const countHtml = `<div class="model-count">${models.length} model${models.length !== 1 ? 's' : ''}</div>`;
+  list.innerHTML = countHtml + models.map((m, i) => {
+    const ctx   = m.context_length ? fmtCtx(m.context_length) : '';
+    const price = (m.prompt_price || m.completion_price)
+      ? `$${m.prompt_price}/$${m.completion_price} per 1M`
+      : '';
+    return `<div class="model-item" data-id="${escHtml(m.id)}" data-idx="${i}"
+        onclick="selectModel('${escHtml(m.id)}')"
+        onmouseenter="setFocused(${i})">
+      <div class="model-item-name">${escHtml(m.name || m.id)}</div>
+      <div class="model-item-id">${escHtml(m.id)}</div>
+      <div class="model-item-meta">
+        ${ctx   ? `<span class="model-meta-chip">${ctx} ctx</span>` : ''}
+        ${price ? `<span class="model-meta-chip price">${escHtml(price)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function fmtCtx(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000)     return Math.round(n / 1_000) + 'k';
+  return String(n);
+}
+
+function setFocused(idx) {
+  _focusedIdx = idx;
+  document.querySelectorAll('#model-list .model-item').forEach((el, i) => {
+    el.classList.toggle('focused', i === idx);
+  });
+}
+
+function selectModel(id) {
+  document.getElementById('prov-model').value = id;
+  closeModelPicker();
+  document.getElementById('model-search').value = '';
+}
+
+function modelKeyNav(e) {
+  const items = document.querySelectorAll('#model-list .model-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _focusedIdx = Math.min(_focusedIdx + 1, items.length - 1);
+    setFocused(_focusedIdx);
+    items[_focusedIdx]?.scrollIntoView({block:'nearest'});
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _focusedIdx = Math.max(_focusedIdx - 1, 0);
+    setFocused(_focusedIdx);
+    items[_focusedIdx]?.scrollIntoView({block:'nearest'});
+  } else if (e.key === 'Enter' && _focusedIdx >= 0) {
+    e.preventDefault();
+    selectModel(items[_focusedIdx].dataset.id);
+  } else if (e.key === 'Escape') {
+    closeModelPicker();
+  }
+}
+
+// Close picker when clicking outside
+document.addEventListener('click', e => {
+  const picker = document.querySelector('.model-picker');
+  if (picker && !picker.contains(e.target)) closeModelPicker();
+});
 
 async function saveProvider() {
   try {
