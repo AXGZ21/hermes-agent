@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hermes — Config</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c0e;--surf:#131316;--surf2:#1a1a1f;
+  --bd:#22222a;--bd2:#2c2c38;
+  --text:#dcdcec;--muted:#58586e;--dim:#333346;
+  --accent:#8b5cf6;--accent-lo:rgba(139,92,246,.12);
+  --green:#10b981;--green-lo:rgba(16,185,129,.12);
+  --red:#ef4444;--red-lo:rgba(239,68,68,.12);
+  --yellow:#f59e0b;--yellow-lo:rgba(245,158,11,.12);
+  --r:8px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',system-ui,sans-serif;
+}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;display:flex;overflow:hidden}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
+
+/* ── Layout ── */
+#sb{width:200px;min-width:200px;background:var(--surf);border-right:1px solid var(--bd);display:flex;flex-direction:column;height:100vh}
+#ct{flex:1;overflow-y:auto;padding:0 36px 64px}
+
+/* ── Sidebar ── */
+.logo{padding:22px 18px 18px;font-size:15px;font-weight:700;letter-spacing:-.03em;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--bd)}
+.logo-ico{width:26px;height:26px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+nav{padding:10px 8px;flex:1}
+nav a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;margin-bottom:2px;transition:color .12s,background .12s;cursor:pointer}
+nav a:hover{color:var(--text);background:rgba(255,255,255,.03)}
+nav a.on{color:var(--text);background:var(--accent-lo)}
+nav a .ico{width:15px;text-align:center;font-style:normal;font-size:13px;opacity:.6}
+nav a.on .ico{opacity:1}
+#gw-dot{width:7px;height:7px;border-radius:50%;background:var(--dim);margin-left:auto;flex-shrink:0;transition:background .3s}
+#gw-dot.up{background:var(--green)}
+.sb-foot{padding:14px 18px;border-top:1px solid var(--bd);font-size:11.5px;color:var(--muted)}
+
+/* ── Sections ── */
+section{display:none;padding-top:34px;max-width:640px}
+section.on{display:block}
+.sh{margin-bottom:26px}
+.sh h2{font-size:19px;font-weight:700;letter-spacing:-.03em;margin-bottom:3px}
+.sh p{color:var(--muted);font-size:13px}
+
+/* ── Card ── */
+.card{background:var(--surf);border:1px solid var(--bd);border-radius:var(--r);padding:20px;margin-bottom:12px}
+.clabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:14px}
+
+/* ── Forms ── */
+.f{margin-bottom:14px}
+.f:last-child{margin-bottom:0}
+label{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin-bottom:5px}
+label .opt{font-weight:400;opacity:.7}
+input[type=text],input[type=password],input[type=number],select,textarea{
+  width:100%;background:var(--bg);border:1px solid var(--bd2);color:var(--text);
+  padding:7px 11px;border-radius:6px;font-size:13px;outline:none;
+  transition:border-color .12s;font-family:var(--font);
+}
+input:focus,select:focus{border-color:var(--accent)}
+input::placeholder{color:var(--dim)}
+select{cursor:pointer}select option{background:var(--surf)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g32{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.irow{display:flex;gap:6px;align-items:center}
+.irow input{flex:1}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .12s,background .12s;white-space:nowrap;font-family:var(--font)}
+.btn:hover{opacity:.85}.btn:active{opacity:.65}
+.btn-p{background:var(--accent);color:#fff}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--bd2)}
+.btn-g:hover{color:var(--text)}
+.btn-d{background:var(--red-lo);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn-s{padding:5px 11px;font-size:12px}
+
+/* ── Toggle ── */
+.trow{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bd)}
+.trow:last-child{border-bottom:none;padding-bottom:0}
+.trow:first-child{padding-top:0}
+.tname{font-size:13.5px;font-weight:500}
+.tdesc{font-size:12px;color:var(--muted);margin-top:1px}
+.sw{position:relative;width:36px;height:20px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.sl{position:absolute;inset:0;cursor:pointer;background:var(--bd2);border-radius:20px;transition:.18s}
+.sl::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:.18s}
+input:checked+.sl{background:var(--accent)}
+input:checked+.sl::before{background:#fff;transform:translateX(16px)}
+
+/* ── Badges ── */
+.bdg{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:4px;font-size:11.5px;font-weight:500}
+.bdg-g{background:var(--green-lo);color:var(--green)}
+.bdg-r{background:var(--red-lo);color:var(--red)}
+.bdg-m{background:var(--surf2);color:var(--muted)}
+.bdg-a{background:var(--accent-lo);color:var(--accent)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ── Alerts ── */
+.al{padding:11px 14px;border-radius:6px;font-size:13px;margin-bottom:14px;line-height:1.6}
+.al a{color:inherit;opacity:.85}
+.al-i{background:var(--accent-lo);border:1px solid rgba(139,92,246,.25);color:#c4b5fd}
+.al-s{background:var(--green-lo);border:1px solid rgba(16,185,129,.25);color:var(--green)}
+.al-w{background:var(--yellow-lo);border:1px solid rgba(245,158,11,.25);color:var(--yellow)}
+.al-e{background:var(--red-lo);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+.al code{font-family:monospace;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px}
+
+/* ── Code display (OAuth code) ── */
+.oauth-code{font-family:'SFMono-Regular','Fira Code',monospace;font-size:26px;font-weight:800;letter-spacing:.22em;color:var(--accent);text-align:center;padding:18px;background:var(--accent-lo);border:1px dashed rgba(139,92,246,.35);border-radius:var(--r);margin:12px 0;user-select:all;cursor:copy}
+
+/* ── Status grid ── */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.si{background:var(--surf);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px}
+.si-l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px}
+.si-v{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;word-break:break-all}
+
+/* ── Platform tabs ── */
+.ptabs{display:flex;gap:5px;margin-bottom:14px}
+.ptab{padding:6px 13px;border-radius:6px;font-size:12.5px;cursor:pointer;color:var(--muted);border:1px solid transparent;font-weight:500;transition:all .12s;user-select:none}
+.ptab:hover{color:var(--text);background:var(--surf2)}
+.ptab.on{color:var(--text);background:var(--surf);border-color:var(--bd)}
+.pind{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--dim);margin-left:5px;vertical-align:middle;transition:background .2s}
+.ptab.ok .pind{background:var(--green)}
+.pcnt{display:none}.pcnt.on{display:block}
+
+/* ── Provider seg ── */
+.seg{display:flex;gap:5px;margin-bottom:18px}
+.seg-b{flex:1;padding:8px;border-radius:6px;border:1px solid var(--bd);background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all .12s;font-family:var(--font)}
+.seg-b:hover{color:var(--text);border-color:var(--bd2)}
+.seg-b.on{color:var(--text);background:var(--surf2);border-color:var(--accent)}
+
+/* ── Logs ── */
+.logbox{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:12px;height:180px;overflow-y:auto;font-family:'SFMono-Regular','Fira Code',monospace;font-size:11.5px;color:var(--muted);line-height:1.7}
+.logbox .err{color:var(--red)}
+.logbox .ok{color:var(--green)}
+
+/* ── Save bar ── */
+.sbar{display:flex;justify-content:flex-end;gap:8px;padding-top:18px;margin-top:6px;border-top:1px solid var(--bd)}
+hr{border:none;border-top:1px solid var(--bd);margin:18px 0}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:22px;right:22px;max-width:300px;z-index:999;pointer-events:none}
+.toast-msg{padding:10px 14px;border-radius:7px;font-size:13px;margin-top:8px;opacity:0;transition:opacity .2s;font-family:var(--font)}
+.toast-msg.show{opacity:1}
+.toast-s{background:#1a2e25;border:1px solid rgba(16,185,129,.3);color:var(--green)}
+.toast-e{background:#2a1a1a;border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.toast-i{background:#1e1a2e;border:1px solid rgba(139,92,246,.3);color:#c4b5fd}
+
+/* ── Spinner ── */
+.spin{width:14px;height:14px;border:2px solid rgba(139,92,246,.25);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside id="sb">
+  <div class="logo">
+    <div class="logo-ico">⚡</div>
+    hermes
+  </div>
+  <nav>
+    <a class="on" data-s="overview"><i class="ico">◎</i>Overview<span id="gw-dot"></span></a>
+    <a data-s="auth"><i class="ico">⊕</i>Auth</a>
+    <a data-s="provider"><i class="ico">◈</i>Provider</a>
+    <a data-s="platforms"><i class="ico">◫</i>Platforms</a>
+    <a data-s="settings"><i class="ico">◧</i>Settings</a>
+  </nav>
+  <div class="sb-foot">hermes-agent</div>
+</aside>
+
+<!-- Content -->
+<main id="ct">
+
+  <!-- Overview -->
+  <section id="s-overview" class="on">
+    <div class="sh"><h2>Overview</h2><p>Configuration status and gateway health.</p></div>
+
+    <div class="sgrid">
+      <div class="si"><div class="si-l">Provider</div><div class="si-v" id="ov-prov"><span class="spin"></span></div></div>
+      <div class="si"><div class="si-l">Model</div><div class="si-v" id="ov-model" style="font-size:12px">—</div></div>
+      <div class="si"><div class="si-l">Nous Portal</div><div class="si-v" id="ov-nous">—</div></div>
+      <div class="si"><div class="si-l">OpenRouter Key</div><div class="si-v" id="ov-or">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="clabel">Gateway Process</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div>
+          <div class="si-v" id="ov-gw">—</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px" id="ov-gw-pid"></div>
+        </div>
+        <button class="btn btn-g btn-s" onclick="restartGateway()">Restart gateway</button>
+      </div>
+      <div class="clabel" style="margin-bottom:8px">Recent logs</div>
+      <div class="logbox" id="logbox">No logs yet.</div>
+    </div>
+
+    <div class="card">
+      <div class="clabel">Messaging Platforms</div>
+      <div id="ov-plat"></div>
+    </div>
+  </section>
+
+  <!-- Auth -->
+  <section id="s-auth">
+    <div class="sh"><h2>Authentication</h2><p>Connect to Nous Portal for managed inference access.</p></div>
+
+    <div class="card">
+      <div class="clabel">Nous Portal</div>
+
+      <!-- Logged out -->
+      <div id="auth-out">
+        <div style="margin-bottom:14px">
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">Sign in with Nous Portal</div>
+          <div style="font-size:13px;color:var(--muted)">OAuth device code flow — no password stored. Tokens saved to <code style="font-family:monospace;font-size:12px">~/.hermes/auth.json</code>.</div>
+        </div>
+        <button class="btn btn-p" onclick="nousStart()">Login with Nous Portal</button>
+      </div>
+
+      <!-- Flow in progress -->
+      <div id="auth-flow" style="display:none">
+        <div class="al al-i">Visit the link below and enter your code to authorize Hermes.</div>
+        <div class="oauth-code" id="auth-code" title="Click to copy" onclick="navigator.clipboard.writeText(this.textContent)">——————</div>
+        <div style="text-align:center;margin-bottom:14px">
+          <a id="auth-link" href="#" target="_blank" class="btn btn-g btn-s">Open verification page →</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;color:var(--muted);font-size:13px">
+          <span class="spin"></span> Waiting for authorization…
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn btn-g btn-s" onclick="nousCancel()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Logged in -->
+      <div id="auth-in" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:15px;font-weight:600;margin-bottom:3px">Connected to Nous Portal</div>
+            <div style="font-size:13px;color:var(--muted)">Credentials stored in ~/.hermes/auth.json</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="bdg bdg-g"><span class="dot"></span> Active</span>
+            <button class="btn btn-d btn-s" onclick="nousLogout()">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Provider -->
+  <section id="s-provider">
+    <div class="sh"><h2>Provider &amp; Model</h2><p>Configure the LLM backend and default model.</p></div>
+
+    <div class="card">
+      <div class="clabel">Inference Provider</div>
+      <div class="seg" id="prov-seg">
+        <button class="seg-b on" data-pt="nous" onclick="pickProv('nous',this)">Nous Portal</button>
+        <button class="seg-b" data-pt="openrouter" onclick="pickProv('openrouter',this)">OpenRouter</button>
+        <button class="seg-b" data-pt="custom" onclick="pickProv('custom',this)">Custom</button>
+      </div>
+
+      <!-- Nous -->
+      <div id="pc-nous">
+        <div class="al al-i">Using Nous Portal inference. Login on the <strong>Auth</strong> tab first — no API key needed.</div>
+      </div>
+
+      <!-- OpenRouter -->
+      <div id="pc-openrouter" style="display:none">
+        <div class="f">
+          <label>OpenRouter API Key</label>
+          <div class="irow">
+            <input type="password" id="or-key" placeholder="sk-or-v1-…">
+            <button class="btn btn-g btn-s" onclick="vis('or-key',this)">Show</button>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:5px">Get a key at <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--accent)">openrouter.ai/keys</a></div>
+        </div>
+      </div>
+
+      <!-- Custom -->
+      <div id="pc-custom" style="display:none">
+        <div class="f">
+          <label>Base URL <span class="opt">— OpenAI-compatible endpoint</span></label>
+          <input type="text" id="cu-url" placeholder="https://api.example.com/v1">
+          <div style="font-size:12px;color:var(--muted);margin-top:5px">Works with Ollama, vLLM, LM Studio, Together, Fireworks, etc.</div>
+        </div>
+        <div class="f">
+          <label>API Key <span class="opt">— leave blank for local endpoints</span></label>
+          <div class="irow">
+            <input type="password" id="cu-key" placeholder="sk-…">
+            <button class="btn btn-g btn-s" onclick="vis('cu-key',this)">Show</button>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="f" style="margin-bottom:0">
+        <label>Default Model</label>
+        <input type="text" id="prov-model" placeholder="anthropic/claude-opus-4-6" list="mlist">
+        <datalist id="mlist">
+          <option value="anthropic/claude-opus-4-6">
+          <option value="anthropic/claude-sonnet-4-5">
+          <option value="anthropic/claude-haiku-4-5">
+          <option value="openai/gpt-4o">
+          <option value="openai/gpt-4o-mini">
+          <option value="google/gemini-2.0-flash-001">
+          <option value="meta-llama/llama-3.3-70b-instruct">
+          <option value="NousResearch/Hermes-3-Llama-3.1-70B">
+          <option value="qwen/qwen-2.5-72b-instruct">
+          <option value="deepseek/deepseek-r1">
+          <option value="mistralai/mistral-large">
+        </datalist>
+      </div>
+
+      <div class="sbar">
+        <button class="btn btn-g btn-s" onclick="loadProv()">Reset</button>
+        <button class="btn btn-p btn-s" onclick="saveProv()">Save provider</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platforms -->
+  <section id="s-platforms">
+    <div class="sh"><h2>Messaging Platforms</h2><p>Connect Hermes to messaging platforms via the gateway.</p></div>
+
+    <div class="ptabs">
+      <div class="ptab on" data-pt="telegram" onclick="pickPtab('telegram',this)">Telegram<span class="pind"></span></div>
+      <div class="ptab" data-pt="discord" onclick="pickPtab('discord',this)">Discord<span class="pind"></span></div>
+      <div class="ptab" data-pt="slack" onclick="pickPtab('slack',this)">Slack<span class="pind"></span></div>
+      <div class="ptab" data-pt="whatsapp" onclick="pickPtab('whatsapp',this)">WhatsApp<span class="pind"></span></div>
+    </div>
+
+    <div class="card">
+      <!-- Telegram -->
+      <div class="pcnt on" id="plt-telegram">
+        <div class="al al-i" style="margin-bottom:16px">
+          Create a bot at <a href="https://t.me/BotFather" target="_blank">@BotFather</a> on Telegram to get your token.
+        </div>
+        <div class="f">
+          <label>Bot Token</label>
+          <div class="irow">
+            <input type="password" id="tg-tok" placeholder="1234567890:ABC-DEF…">
+            <button class="btn btn-g btn-s" onclick="vis('tg-tok',this)">Show</button>
+          </div>
+        </div>
+        <div class="f">
+          <label>Home Channel ID <span class="opt">— optional, for cron notifications</span></label>
+          <input type="text" id="tg-ch" placeholder="-1001234567890">
+        </div>
+      </div>
+
+      <!-- Discord -->
+      <div class="pcnt" id="plt-discord">
+        <div class="al al-i" style="margin-bottom:16px">
+          Create an app at <a href="https://discord.com/developers/applications" target="_blank">discord.com/developers</a>. Enable <strong>Message Content Intent</strong> under Bot settings.
+        </div>
+        <div class="f">
+          <label>Bot Token</label>
+          <div class="irow">
+            <input type="password" id="dc-tok" placeholder="MTI3…">
+            <button class="btn btn-g btn-s" onclick="vis('dc-tok',this)">Show</button>
+          </div>
+        </div>
+        <div class="f">
+          <label>Home Channel ID <span class="opt">— optional</span></label>
+          <input type="text" id="dc-ch" placeholder="123456789012345678">
+        </div>
+      </div>
+
+      <!-- Slack -->
+      <div class="pcnt" id="plt-slack">
+        <div class="al al-i" style="margin-bottom:16px">
+          Create an app at <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a>. Enable <strong>Socket Mode</strong>. Add scopes: <code>app_mentions:read</code>, <code>chat:write</code>, <code>channels:history</code>.
+        </div>
+        <div class="g2">
+          <div class="f">
+            <label>Bot Token <span class="opt">(xoxb-…)</span></label>
+            <div class="irow">
+              <input type="password" id="sl-bot" placeholder="xoxb-…">
+              <button class="btn btn-g btn-s" onclick="vis('sl-bot',this)">Show</button>
+            </div>
+          </div>
+          <div class="f">
+            <label>App Token <span class="opt">(xapp-…)</span></label>
+            <div class="irow">
+              <input type="password" id="sl-app" placeholder="xapp-…">
+              <button class="btn btn-g btn-s" onclick="vis('sl-app',this)">Show</button>
+            </div>
+          </div>
+        </div>
+        <div class="f">
+          <label>Home Channel ID <span class="opt">— optional</span></label>
+          <input type="text" id="sl-ch" placeholder="C12345678">
+        </div>
+      </div>
+
+      <!-- WhatsApp -->
+      <div class="pcnt" id="plt-whatsapp">
+        <div class="al al-w" style="margin-bottom:16px">
+          WhatsApp uses a Baileys bridge. On first start, scan the QR code printed in the <strong>gateway logs</strong> on the Overview tab.
+        </div>
+        <div class="trow">
+          <div><div class="tname">Enable WhatsApp bridge</div><div class="tdesc">Starts the WhatsApp adapter on gateway launch</div></div>
+          <label class="sw"><input type="checkbox" id="wa-on"><span class="sl"></span></label>
+        </div>
+      </div>
+
+      <hr>
+      <div class="trow">
+        <div><div class="tname">Allow all users</div><div class="tdesc">Skip allowlist — any user that messages the bot can chat with Hermes</div></div>
+        <label class="sw"><input type="checkbox" id="gw-all"><span class="sl"></span></label>
+      </div>
+
+      <div class="sbar">
+        <button class="btn btn-g btn-s" onclick="loadPlat()">Reset</button>
+        <button class="btn btn-p btn-s" onclick="savePlat()">Save platforms</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section id="s-settings">
+    <div class="sh"><h2>Settings</h2><p>Agent behavior, tools, and optional integrations.</p></div>
+
+    <div class="card">
+      <div class="clabel">Agent</div>
+      <div class="g2">
+        <div class="f">
+          <label>Terminal Backend</label>
+          <select id="term-be">
+            <option value="local">Local</option>
+            <option value="docker">Docker</option>
+            <option value="ssh">SSH</option>
+            <option value="modal">Modal</option>
+            <option value="singularity">Singularity</option>
+          </select>
+        </div>
+        <div class="f">
+          <label>Max Turns</label>
+          <input type="number" id="max-t" min="1" max="500" value="60">
+        </div>
+      </div>
+      <div class="f" style="margin-bottom:0">
+        <label>Response Pacing</label>
+        <select id="delay">
+          <option value="off">Off — instant responses</option>
+          <option value="natural">Natural — human-like delay</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="clabel">Context Compression</div>
+      <div class="trow">
+        <div><div class="tname">Auto-compress long conversations</div><div class="tdesc">Summarizes context when approaching the model's limit</div></div>
+        <label class="sw"><input type="checkbox" id="comp-on" checked><span class="sl"></span></label>
+      </div>
+      <div class="trow">
+        <div><div class="tname">Compression threshold</div><div class="tdesc">Compress at this fraction of the context limit</div></div>
+        <input type="number" id="comp-thr" min="0.5" max="1.0" step="0.05" value="0.85" style="width:76px">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="clabel">Optional Tool Keys</div>
+      <div class="f">
+        <label>Firecrawl API Key <span class="opt">— web search &amp; scraping</span></label>
+        <div class="irow">
+          <input type="password" id="fc-k" placeholder="fc-…">
+          <button class="btn btn-g btn-s" onclick="vis('fc-k',this)">Show</button>
+        </div>
+      </div>
+      <div class="f">
+        <label>FAL API Key <span class="opt">— image generation</span></label>
+        <div class="irow">
+          <input type="password" id="fal-k" placeholder="fal-…">
+          <button class="btn btn-g btn-s" onclick="vis('fal-k',this)">Show</button>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="f">
+          <label>Browserbase API Key <span class="opt">— cloud browser</span></label>
+          <div class="irow">
+            <input type="password" id="bb-k" placeholder="bb_…">
+            <button class="btn btn-g btn-s" onclick="vis('bb-k',this)">Show</button>
+          </div>
+        </div>
+        <div class="f">
+          <label>Browserbase Project ID</label>
+          <input type="text" id="bb-p" placeholder="prj_…">
+        </div>
+      </div>
+      <div class="f" style="margin-bottom:0">
+        <label>GitHub Token <span class="opt">— Skills Hub</span></label>
+        <div class="irow">
+          <input type="password" id="gh-k" placeholder="ghp_…">
+          <button class="btn btn-g btn-s" onclick="vis('gh-k',this)">Show</button>
+        </div>
+      </div>
+      <div class="sbar">
+        <button class="btn btn-g btn-s" onclick="loadSett()">Reset</button>
+        <button class="btn btn-p btn-s" onclick="saveSett()">Save settings</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Toast container -->
+<div id="toast"></div>
+
+<script>
+// ── Navigation ────────────────────────────────────────────────
+const LOAD = { overview: loadOv, auth: loadAuth, provider: loadProv, platforms: loadPlat, settings: loadSett };
+document.querySelectorAll('nav a').forEach(a => {
+  a.addEventListener('click', () => {
+    const s = a.dataset.s;
+    document.querySelectorAll('nav a').forEach(x => x.classList.remove('on'));
+    document.querySelectorAll('section').forEach(x => x.classList.remove('on'));
+    a.classList.add('on');
+    document.getElementById('s-' + s).classList.add('on');
+    if (LOAD[s]) LOAD[s]();
+  });
+});
+
+// ── API helpers ───────────────────────────────────────────────
+const G = p => fetch(p).then(r => r.json());
+const P = (p, b) => fetch(p, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(b) }).then(r => r.json());
+
+function vis(id, btn) {
+  const el = document.getElementById(id);
+  const hide = el.type === 'password';
+  el.type = hide ? 'text' : 'password';
+  btn.textContent = hide ? 'Hide' : 'Show';
+}
+
+function badge(ok, yes='Connected', no='Not configured') {
+  return ok
+    ? `<span class="bdg bdg-g"><span class="dot"></span>${yes}</span>`
+    : `<span class="bdg bdg-m"><span class="dot"></span>${no}</span>`;
+}
+
+function toast(msg, type='s') {
+  const d = document.createElement('div');
+  d.className = `toast-msg toast-${type}`;
+  d.textContent = msg;
+  document.getElementById('toast').appendChild(d);
+  requestAnimationFrame(() => d.classList.add('show'));
+  setTimeout(() => { d.classList.remove('show'); setTimeout(() => d.remove(), 250); }, 2800);
+}
+
+// ── Overview ──────────────────────────────────────────────────
+let _logTimer;
+async function loadOv() {
+  const s = await G('/api/status');
+  document.getElementById('ov-prov').innerHTML = badge(
+    s.provider_type && s.provider_type !== 'auto',
+    s.provider_type?.toUpperCase(), 'Not configured'
+  );
+  document.getElementById('ov-model').textContent = s.active_model || '—';
+  document.getElementById('ov-nous').innerHTML = badge(s.nous_logged_in, 'Authenticated', 'Not logged in');
+  document.getElementById('ov-or').innerHTML = badge(s.openrouter_key, 'Key set', 'Not set');
+
+  const gw = s.gateway;
+  const gwEl = document.getElementById('ov-gw');
+  const dot = document.getElementById('gw-dot');
+  if (gw.running) {
+    gwEl.innerHTML = `<span class="bdg bdg-g"><span class="dot"></span>Running</span>`;
+    document.getElementById('ov-gw-pid').textContent = `PID ${gw.pid} · up ${fmt(gw.uptime_s)}`;
+    dot.classList.add('up');
+  } else {
+    gwEl.innerHTML = `<span class="bdg bdg-m"><span class="dot"></span>Stopped</span>`;
+    document.getElementById('ov-gw-pid').textContent = '';
+    dot.classList.remove('up');
+  }
+
+  const plNames = { telegram:'Telegram', discord:'Discord', slack:'Slack', whatsapp:'WhatsApp' };
+  document.getElementById('ov-plat').innerHTML = Object.entries(s.platforms).map(([k,v]) =>
+    `<div class="trow" style="padding:10px 0"><span class="tname">${plNames[k]}</span>${badge(v)}</div>`
+  ).join('');
+
+  loadLogs();
+  clearTimeout(_logTimer);
+  _logTimer = setInterval(loadLogs, 3000);
+}
+
+function fmt(s) {
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s/60)}m`;
+  return `${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`;
+}
+
+async function loadLogs() {
+  const d = await G('/api/gateway/logs');
+  const box = document.getElementById('logbox');
+  if (!d.logs?.length) { box.textContent = 'No logs yet.'; return; }
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  box.innerHTML = d.logs.map(l => {
+    const cls = /error|exception|traceback/i.test(l) ? 'err' : /connect|start|ready|ok/i.test(l) ? 'ok' : '';
+    return `<div${cls ? ` class="${cls}"` : ''}>${esc(l)}</div>`;
+  }).join('');
+  if (atBottom) box.scrollTop = box.scrollHeight;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function restartGateway() {
+  toast('Restarting gateway…', 'i');
+  await P('/api/gateway/restart', {});
+  setTimeout(loadOv, 800);
+}
+
+// ── Auth ──────────────────────────────────────────────────────
+let _pollInt;
+async function loadAuth() {
+  const d = await G('/api/auth/status');
+  const li = d.nous?.logged_in;
+  document.getElementById('auth-out').style.display = li ? 'none' : 'block';
+  document.getElementById('auth-in').style.display = li ? 'block' : 'none';
+  document.getElementById('auth-flow').style.display = 'none';
+}
+
+async function nousStart() {
+  try {
+    const d = await P('/api/auth/nous/start', {});
+    document.getElementById('auth-out').style.display = 'none';
+    document.getElementById('auth-flow').style.display = 'block';
+    document.getElementById('auth-code').textContent = d.user_code;
+    const lnk = document.getElementById('auth-link');
+    lnk.href = d.verification_uri;
+    lnk.textContent = 'Open verification page →';
+    _pollInt = setInterval(pollNous, 5000);
+  } catch(e) {
+    toast('Failed to start Nous login', 'e');
+  }
+}
+
+async function pollNous() {
+  const d = await G('/api/auth/nous/poll');
+  if (d.status === 'authorized') {
+    clearInterval(_pollInt);
+    toast('Nous Portal connected!');
+    loadAuth();
+  } else if (d.status === 'error') {
+    clearInterval(_pollInt);
+    toast('Authorization failed: ' + (d.detail||'unknown'), 'e');
+    loadAuth();
+  }
+}
+
+function nousCancel() {
+  clearInterval(_pollInt);
+  document.getElementById('auth-flow').style.display = 'none';
+  document.getElementById('auth-out').style.display = 'block';
+}
+
+async function nousLogout() {
+  await P('/api/auth/nous/logout', {});
+  toast('Logged out from Nous Portal');
+  loadAuth();
+}
+
+// ── Provider ──────────────────────────────────────────────────
+let _provType = 'nous';
+function pickProv(type, btn) {
+  _provType = type;
+  document.querySelectorAll('.seg-b').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  ['nous','openrouter','custom'].forEach(t =>
+    document.getElementById('pc-'+t).style.display = t===type ? 'block' : 'none'
+  );
+}
+
+async function loadProv() {
+  const d = await G('/api/provider');
+  _provType = d.type;
+  document.querySelectorAll('.seg-b').forEach(b =>
+    b.classList.toggle('on', b.dataset.pt === d.type)
+  );
+  ['nous','openrouter','custom'].forEach(t =>
+    document.getElementById('pc-'+t).style.display = t===d.type ? 'block' : 'none'
+  );
+  document.getElementById('prov-model').value = d.model || '';
+  if (d.type === 'openrouter' && d.api_key_set)
+    document.getElementById('or-key').placeholder = d.api_key_masked || '(key set)';
+  if (d.type === 'custom') {
+    document.getElementById('cu-url').value = d.base_url || '';
+    if (d.api_key_set)
+      document.getElementById('cu-key').placeholder = d.api_key_masked || '(key set)';
+  }
+}
+
+async function saveProv() {
+  const body = { type: _provType, model: document.getElementById('prov-model').value.trim() };
+  if (_provType === 'openrouter') body.api_key = document.getElementById('or-key').value.trim();
+  if (_provType === 'custom') {
+    body.api_key = document.getElementById('cu-key').value.trim();
+    body.base_url = document.getElementById('cu-url').value.trim();
+  }
+  const r = await P('/api/provider', body);
+  r.ok ? toast('Provider saved') : toast('Failed to save', 'e');
+}
+
+// ── Platforms ─────────────────────────────────────────────────
+function pickPtab(tab, el) {
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.pcnt').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('plt-'+tab).classList.add('on');
+}
+
+async function loadPlat() {
+  const d = await G('/api/platforms');
+  const set = (id, key) => { if (d[key]) document.getElementById(id).placeholder = d[key]; };
+  set('tg-tok', 'telegram_token_masked');
+  document.getElementById('tg-ch').value = d.telegram_channel || '';
+  set('dc-tok', 'discord_token_masked');
+  document.getElementById('dc-ch').value = d.discord_channel || '';
+  set('sl-bot', 'slack_bot_token_masked');
+  set('sl-app', 'slack_app_token_masked');
+  document.getElementById('sl-ch').value = d.slack_channel || '';
+  document.getElementById('wa-on').checked = d.whatsapp_enabled;
+  document.getElementById('gw-all').checked = d.allow_all_users;
+
+  const flags = { telegram: d.telegram_token_set, discord: d.discord_token_set, slack: d.slack_bot_token_set, whatsapp: d.whatsapp_enabled };
+  document.querySelectorAll('.ptab').forEach(t => {
+    t.classList.toggle('ok', !!flags[t.dataset.pt]);
+  });
+}
+
+async function savePlat() {
+  const body = {
+    telegram_token:   document.getElementById('tg-tok').value.trim(),
+    telegram_channel: document.getElementById('tg-ch').value.trim(),
+    discord_token:    document.getElementById('dc-tok').value.trim(),
+    discord_channel:  document.getElementById('dc-ch').value.trim(),
+    slack_bot_token:  document.getElementById('sl-bot').value.trim(),
+    slack_app_token:  document.getElementById('sl-app').value.trim(),
+    slack_channel:    document.getElementById('sl-ch').value.trim(),
+    whatsapp_enabled: document.getElementById('wa-on').checked,
+    allow_all_users:  document.getElementById('gw-all').checked,
+  };
+  const r = await P('/api/platforms', body);
+  if (r.ok) { toast('Platforms saved'); loadPlat(); }
+  else toast('Failed to save', 'e');
+}
+
+// ── Settings ──────────────────────────────────────────────────
+async function loadSett() {
+  const d = await G('/api/settings');
+  document.getElementById('term-be').value = d.terminal_backend || 'local';
+  document.getElementById('max-t').value = d.max_turns || 60;
+  document.getElementById('comp-on').checked = d.compression_enabled !== false;
+  document.getElementById('comp-thr').value = d.compression_threshold || 0.85;
+  document.getElementById('delay').value = d.human_delay_mode || 'off';
+  const ph = (id, set) => { if (set) document.getElementById(id).placeholder = '(key set)'; };
+  ph('fc-k', d.firecrawl_key_set);
+  ph('fal-k', d.fal_key_set);
+  ph('bb-k', d.browserbase_key_set);
+  ph('bb-p', d.browserbase_project_set);
+  ph('gh-k', d.github_token_set);
+}
+
+async function saveSett() {
+  const body = {
+    terminal_backend:      document.getElementById('term-be').value,
+    max_turns:             parseInt(document.getElementById('max-t').value),
+    compression_enabled:   document.getElementById('comp-on').checked,
+    compression_threshold: parseFloat(document.getElementById('comp-thr').value),
+    human_delay_mode:      document.getElementById('delay').value,
+    firecrawl_key:         document.getElementById('fc-k').value.trim(),
+    fal_key:               document.getElementById('fal-k').value.trim(),
+    github_token:          document.getElementById('gh-k').value.trim(),
+    browserbase_key:       document.getElementById('bb-k').value.trim(),
+    browserbase_project:   document.getElementById('bb-p').value.trim(),
+  };
+  const r = await P('/api/settings', body);
+  r.ok ? toast('Settings saved') : toast('Failed to save', 'e');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadOv();
+</script>
+</body>
+</html>

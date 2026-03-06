@@ -1,15 +1,21 @@
-# ──────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────
 # Hermes Agent – Railway Template Configuration
-# ──────────────────────────────────────────────
+#
+# The container exposes:
+#   • Web config UI  → $PORT (Railway sets this automatically)
+#   • Gateway process → managed internally by the web UI
+# ──────────────────────────────────────────────────────────────
 
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "python -m gateway.run"
+# Entrypoint starts uvicorn; no override needed here.
 restartPolicyType = "always"
 sleepApplication = false
+healthcheckPath = "/"
+healthcheckTimeout = 30
 
 # ── Environment variable definitions ─────────
 # These appear as prompts in the Railway template UI.
