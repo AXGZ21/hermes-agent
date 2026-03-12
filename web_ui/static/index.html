@@ -123,6 +123,9 @@ button.danger{background:var(--red)}
     <a href="#" data-page="terminal"><span class="ic">▣</span> Terminal</a>
     <a href="#" data-page="tools"><span class="ic">◆</span> Tools</a>
     <a href="#" data-page="advanced"><span class="ic">⊞</span> Advanced</a>
+    <a href="#" data-page="soul"><span class="ic">✦</span> Soul</a>
+    <a href="#" data-page="skills"><span class="ic">◉</span> Skills</a>
+    <a href="#" data-page="sessions"><span class="ic">⋮</span> Sessions</a>
   </nav>
 </aside>
 
@@ -1108,6 +1111,65 @@ button.danger{background:var(--red)}
   </div>
 </div>
 
+<!-- SOUL -->
+<div class="page" id="page-soul">
+  <h2>Soul</h2>
+  <p class="subtitle">The agent's persona — injected as system prompt on every conversation (<code>~/.hermes/SOUL.md</code>).</p>
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      SOUL.md
+      <span id="soul-chars" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <textarea id="soul-content" rows="18"
+      style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:12px;font-family:monospace;font-size:13px;resize:vertical;line-height:1.55"
+      oninput="document.getElementById('soul-chars').textContent=this.value.length+' chars'"
+      placeholder="You are Hermes, a helpful AI assistant."></textarea>
+    <p class="hint" style="margin-top:6px">Changes take effect on the next gateway restart.</p>
+    <div class="save-btn-row">
+      <button onclick="saveSoul()">Save Soul</button>
+      <span class="save-msg" id="soul-msg">Saved</span>
+    </div>
+  </div>
+</div>
+
+<!-- SKILLS -->
+<div class="page" id="page-skills">
+  <h2>Skills</h2>
+  <p class="subtitle">Install, inspect, and remove agent skill packs from <code>~/.hermes/skills/</code>.</p>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Install a Skill</div>
+    <label>Skill identifier (GitHub owner/repo or skill name)</label>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="skill-install-id" placeholder="e.g. NousResearch/hermes-skill-web" style="flex:1" />
+      <button onclick="installSkill()" id="btn-install-skill">Install</button>
+    </div>
+    <div id="skill-install-out" style="display:none;margin-top:10px;background:#0e0e12;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:monospace;font-size:12px;white-space:pre-wrap;max-height:160px;overflow-y:auto"></div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      Installed Skills
+      <button class="sec" onclick="loadSkills()">↻ Refresh</button>
+    </div>
+    <div id="skills-list"><span style="color:var(--muted);font-size:13px">Loading…</span></div>
+  </div>
+</div>
+
+<!-- SESSIONS -->
+<div class="page" id="page-sessions">
+  <h2>Sessions</h2>
+  <p class="subtitle">Active conversation sessions stored in <code>~/.hermes/state.db</code>.</p>
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+      Sessions
+      <div style="display:flex;gap:8px">
+        <button class="sec" onclick="loadSessions()">↻ Refresh</button>
+        <button class="danger" onclick="clearAllSessions()">Clear All</button>
+      </div>
+    </div>
+    <div id="sessions-list"><span style="color:var(--muted);font-size:13px">Loading…</span></div>
+  </div>
+</div>
+
 </main>
 
 <script>
@@ -1934,6 +1996,136 @@ async function saveAdvanced() {
   } catch(e) { alert('Save failed: ' + e.message); }
 }
 
+/* ── Soul ── */
+async function loadSoul() {
+  try {
+    const d = await api('GET', '/api/soul');
+    const ta = document.getElementById('soul-content');
+    ta.value = d.content;
+    document.getElementById('soul-chars').textContent = d.content.length + ' chars';
+  } catch(e) { showPageError(e.message); }
+}
+
+async function saveSoul() {
+  try {
+    await api('POST', '/api/soul', { content: document.getElementById('soul-content').value });
+    flash('soul-msg');
+  } catch(e) { alert('Save failed: ' + e.message); }
+}
+
+/* ── Skills ── */
+async function loadSkills() {
+  const el = document.getElementById('skills-list');
+  try {
+    const d = await api('GET', '/api/skills');
+    if (!d.skills.length) {
+      el.innerHTML = '<p class="hint" style="margin-top:6px">No skills installed yet. Use the form above to install one.</p>';
+      return;
+    }
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="color:var(--muted);font-size:12px;text-align:left">
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">Name</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">Version</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">Author</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">Description</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)"></th>
+      </tr></thead>
+      <tbody>
+        ${d.skills.map(s => `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 0;font-weight:500;font-size:13px">${escHtml(s.name)}</td>
+          <td style="padding:8px 0;color:var(--muted);font-size:12px">${escHtml(s.version||'—')}</td>
+          <td style="padding:8px 0;color:var(--muted);font-size:12px">${escHtml(s.author||'—')}</td>
+          <td style="padding:8px 0;color:var(--muted);font-size:12px;max-width:260px">${escHtml((s.description||'').slice(0,80))}</td>
+          <td style="padding:8px 0;text-align:right">
+            <button class="danger" style="padding:4px 10px;font-size:11px" onclick="uninstallSkill('${escHtml(s.name)}')">Remove</button>
+          </td>
+        </tr>`).join('')}
+      </tbody></table>`;
+  } catch(e) { showPageError(e.message); }
+}
+
+async function installSkill() {
+  const id  = document.getElementById('skill-install-id').value.trim();
+  const out = document.getElementById('skill-install-out');
+  const btn = document.getElementById('btn-install-skill');
+  if (!id) return;
+  btn.disabled = true;
+  btn.textContent = 'Installing…';
+  out.style.display = 'block';
+  out.style.color = 'var(--text)';
+  out.textContent = 'Running install…';
+  try {
+    const d = await api('POST', '/api/skills/install', { identifier: id });
+    out.textContent = d.output || 'Installed successfully.';
+    document.getElementById('skill-install-id').value = '';
+    await loadSkills();
+  } catch(e) {
+    out.style.color = 'var(--red)';
+    out.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Install';
+  }
+}
+
+async function uninstallSkill(name) {
+  if (!confirm(`Remove skill "${name}"?`)) return;
+  try {
+    await api('DELETE', '/api/skills/' + encodeURIComponent(name));
+    await loadSkills();
+  } catch(e) { showPageError(e.message); }
+}
+
+/* ── Sessions ── */
+async function loadSessions() {
+  const el = document.getElementById('sessions-list');
+  try {
+    const d = await api('GET', '/api/sessions');
+    if (!d.sessions.length) {
+      el.innerHTML = '<p class="hint" style="margin-top:6px">No active sessions found.</p>';
+      return;
+    }
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="color:var(--muted);font-size:12px;text-align:left">
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">Platform</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">Type</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">User / Channel</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">Messages</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)">Updated</th>
+        <th style="padding:8px 0;border-bottom:1px solid var(--border)"></th>
+      </tr></thead>
+      <tbody>
+        ${d.sessions.map(s => `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 0;font-weight:500;font-size:13px">${escHtml(s.platform||'—')}</td>
+          <td style="padding:8px 0;color:var(--muted);font-size:12px">${escHtml(s.type||'—')}</td>
+          <td style="padding:8px 0;font-family:monospace;font-size:11px;color:var(--muted)">${escHtml(s.user_id||'—')}</td>
+          <td style="padding:8px 0;color:var(--muted);font-size:12px">${s.msg_count}</td>
+          <td style="padding:8px 0;color:var(--muted);font-size:11px">${escHtml((s.updated_at||'').slice(0,16))}</td>
+          <td style="padding:8px 0;text-align:right">
+            <button class="danger" style="padding:4px 10px;font-size:11px" onclick="clearSession('${escHtml(s.key)}')">Clear</button>
+          </td>
+        </tr>`).join('')}
+      </tbody></table>
+      <p class="hint" style="margin-top:10px">${d.count} session(s) total</p>`;
+  } catch(e) { showPageError(e.message); }
+}
+
+async function clearSession(key) {
+  if (!confirm('Clear this session? The conversation history will be lost.')) return;
+  try {
+    await api('DELETE', '/api/sessions/' + encodeURIComponent(key));
+    await loadSessions();
+  } catch(e) { showPageError(e.message); }
+}
+
+async function clearAllSessions() {
+  if (!confirm('Clear ALL sessions? All conversation histories will be deleted.')) return;
+  try {
+    const d = await api('DELETE', '/api/sessions');
+    await loadSessions();
+  } catch(e) { showPageError(e.message); }
+}
+
 /* ── Global error bar ── */
 let _errTimer = null;
 function showPageError(msg) {
@@ -1959,6 +2151,9 @@ const PAGE_LOADERS = {
   terminal:  loadTerminal,
   tools:     loadTools,
   advanced:  loadAdvanced,
+  soul:      loadSoul,
+  skills:    loadSkills,
+  sessions:  loadSessions,
 };
 
 /* Boot */

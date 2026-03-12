@@ -6,6 +6,7 @@ Covers every config.yaml key and .env variable from the hermes-agent schema.
 import asyncio
 import json
 import os
+import sqlite3
 import subprocess
 import time
 from collections import deque
@@ -999,6 +1000,166 @@ async def save_advanced(a: AdvancedIn):
         HERMES_DUMP_REQUESTS  = "true" if a.dump_requests   else "false",
     )
     return {"ok": True}
+
+
+# ── Soul (SOUL.md persona) ────────────────────────────────────
+SOUL_PATH = HERMES_HOME / "SOUL.md"
+
+class SoulIn(BaseModel):
+    content: str
+
+@app.get("/api/soul")
+async def get_soul():
+    if SOUL_PATH.exists():
+        return {"content": SOUL_PATH.read_text()}
+    return {"content": "You are Hermes, a helpful AI assistant."}
+
+@app.post("/api/soul")
+async def save_soul(s: SoulIn):
+    _home()
+    SOUL_PATH.write_text(s.content)
+    return {"ok": True, "chars": len(s.content)}
+
+
+# ── Skills ────────────────────────────────────────────────────
+SKILLS_DIR = HERMES_HOME / "skills"
+
+def _parse_skill_meta(path: Path) -> dict:
+    text = path.read_text(errors="replace")
+    meta: dict = {"name": path.stem, "description": "", "version": "", "author": ""}
+    if text.startswith("---"):
+        end = text.find("---", 3)
+        if end != -1:
+            try:
+                fm = yaml.safe_load(text[3:end]) or {}
+                meta.update({k: str(v) for k, v in fm.items() if isinstance(v, (str, int, float))})
+            except Exception:
+                pass
+    if not meta.get("name"):
+        meta["name"] = path.stem
+    return meta
+
+@app.get("/api/skills")
+async def list_skills():
+    SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+    skills = []
+    for f in sorted(SKILLS_DIR.iterdir()):
+        if f.is_file() and f.suffix in (".md", ".yaml", ".yml"):
+            try:
+                skills.append(_parse_skill_meta(f))
+            except Exception:
+                skills.append({"name": f.stem, "description": "", "version": "", "author": ""})
+    return {"skills": skills, "count": len(skills)}
+
+class SkillInstallIn(BaseModel):
+    identifier: str
+
+@app.post("/api/skills/install")
+async def install_skill(s: SkillInstallIn):
+    if not s.identifier.strip():
+        raise HTTPException(400, "identifier is required")
+    try:
+        result = subprocess.run(
+            ["python", "-m", "hermes_cli", "skills", "install", s.identifier.strip()],
+            capture_output=True, text=True, timeout=60, cwd="/app",
+        )
+        if result.returncode != 0:
+            raise HTTPException(500, result.stderr.strip() or result.stdout.strip() or "install failed")
+        return {"ok": True, "output": (result.stdout + result.stderr).strip()}
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, "install timed out after 60s")
+
+@app.delete("/api/skills/{name}")
+async def uninstall_skill(name: str):
+    SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+    removed = []
+    for f in SKILLS_DIR.iterdir():
+        if f.is_file() and f.stem == name:
+            f.unlink()
+            removed.append(f.name)
+    if not removed:
+        try:
+            subprocess.run(
+                ["python", "-m", "hermes_cli", "skills", "uninstall", name],
+                capture_output=True, text=True, timeout=30, cwd="/app",
+            )
+        except Exception:
+            pass
+    return {"ok": True, "removed": removed}
+
+
+# ── Sessions ──────────────────────────────────────────────────
+STATE_DB = HERMES_HOME / "state.db"
+
+def _get_sessions() -> List[dict]:
+    if not STATE_DB.exists():
+        return []
+    try:
+        con = sqlite3.connect(str(STATE_DB))
+        con.row_factory = sqlite3.Row
+        cur = con.execute(
+            "SELECT key, value, updated_at FROM kv ORDER BY updated_at DESC LIMIT 200"
+        )
+        rows = cur.fetchall()
+        con.close()
+        sessions = []
+        for r in rows:
+            key = r["key"] or ""
+            if not key.startswith("agent:"):
+                continue
+            try:
+                val = json.loads(r["value"] or "{}")
+            except Exception:
+                val = {}
+            parts = key.split(":")
+            sessions.append({
+                "key":        key,
+                "platform":   parts[2] if len(parts) > 2 else "",
+                "type":       parts[3] if len(parts) > 3 else "",
+                "user_id":    parts[4] if len(parts) > 4 else "",
+                "updated_at": r["updated_at"] or "",
+                "msg_count":  len(val.get("messages", [])),
+            })
+        return sessions
+    except Exception as exc:
+        return [{"key": "_error", "platform": "", "type": "", "user_id": str(exc), "updated_at": "", "msg_count": 0}]
+
+@app.get("/api/sessions")
+async def list_sessions():
+    s = _get_sessions()
+    return {"sessions": s, "count": len(s)}
+
+@app.delete("/api/sessions")
+async def clear_all_sessions():
+    if not STATE_DB.exists():
+        return {"ok": True, "deleted": 0}
+    try:
+        con = sqlite3.connect(str(STATE_DB))
+        cur = con.execute("DELETE FROM kv WHERE key LIKE 'agent:%'")
+        deleted = cur.rowcount
+        con.commit()
+        con.close()
+        return {"ok": True, "deleted": deleted}
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
+
+@app.delete("/api/sessions/{session_key:path}")
+async def clear_session(session_key: str):
+    if not STATE_DB.exists():
+        raise HTTPException(404, "No sessions database")
+    try:
+        con = sqlite3.connect(str(STATE_DB))
+        cur = con.execute("DELETE FROM kv WHERE key = ?", (session_key,))
+        deleted = cur.rowcount
+        con.commit()
+        con.close()
+        if not deleted:
+            raise HTTPException(404, f"Session '{session_key}' not found")
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(500, str(exc))
 
 
 if __name__ == "__main__":
