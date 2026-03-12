@@ -511,6 +511,20 @@ button.danger{background:var(--red)}
           <input type="number" id="ag-maxturns" value="60" min="1" max="500" />
         </div>
       </div>
+      <div class="grid2">
+        <div>
+          <label>Timezone (IANA, blank = server-local)</label>
+          <input type="text" id="ag-timezone" placeholder="e.g. America/New_York" />
+        </div>
+        <div>
+          <label>Session resume display</label>
+          <select id="ag-resume-display">
+            <option value="full">Full history</option>
+            <option value="compact">Compact summary</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+      </div>
       <label class="toggle">
         <input type="checkbox" id="ag-verbose" />
         <span>Verbose logging (print internal reasoning)</span>
@@ -523,6 +537,20 @@ button.danger{background:var(--red)}
         <input type="checkbox" id="ag-worktree" />
         <span>Git worktree isolation (create isolated worktrees for each session)</span>
       </label>
+    </div>
+    <div class="card">
+      <div class="card-title">Fallback Model</div>
+      <p class="hint" style="margin-bottom:12px">Used when the primary provider is unavailable or returns errors.</p>
+      <div class="grid2">
+        <div>
+          <label>Provider (blank = disabled)</label>
+          <input type="text" id="ag-fallback-provider" placeholder="openrouter" />
+        </div>
+        <div>
+          <label>Model</label>
+          <input type="text" id="ag-fallback-model" placeholder="anthropic/claude-sonnet-4" />
+        </div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">Display</div>
@@ -733,6 +761,8 @@ button.danger{background:var(--red)}
       <input type="checkbox" id="term-persist" checked />
       <span>Persistent container (reuse between sessions)</span>
     </label>
+    <label style="margin-top:12px">Volume mounts (one per line: <code>/host/path:/container/path</code>)</label>
+    <textarea id="term-docker-volumes" rows="3" placeholder="/home/user/projects:/workspace&#10;/data:/data" style="font-family:monospace;font-size:12px;width:100%;box-sizing:border-box"></textarea>
   </div>
   <div class="card" id="term-ssh-card" style="display:none">
     <div class="card-title">SSH Settings</div>
@@ -813,9 +843,17 @@ button.danger{background:var(--red)}
   <div class="tabpanel active" id="tab-tool-web">
     <div class="card">
       <div class="card-title">Firecrawl (Web Scraping &amp; Search)</div>
-      <label>API Key (leave blank to keep existing)</label>
-      <input type="password" id="fc-key" placeholder="fc-…" />
-      <p class="hint"><a href="https://firecrawl.dev" target="_blank">firecrawl.dev</a> — enables web search, crawling and scraping tools.</p>
+      <div class="grid2">
+        <div>
+          <label>API Key (leave blank to keep existing)</label>
+          <input type="password" id="fc-key" placeholder="fc-…" />
+        </div>
+        <div>
+          <label>Self-hosted URL (blank = cloud firecrawl.dev)</label>
+          <input type="text" id="fc-url" placeholder="http://localhost:3002" />
+        </div>
+      </div>
+      <p class="hint"><a href="https://firecrawl.dev" target="_blank">firecrawl.dev</a> — enables web search, crawling and scraping tools. Use self-hosted URL to point at your own instance.</p>
     </div>
   </div>
   <div class="tabpanel" id="tab-tool-browser">
@@ -848,6 +886,10 @@ button.danger{background:var(--red)}
       <label class="toggle">
         <input type="checkbox" id="bb-stealth" />
         <span>Advanced stealth mode</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="bb-record" />
+        <span>Auto-record sessions as WebM video</span>
       </label>
     </div>
   </div>
@@ -995,6 +1037,66 @@ button.danger{background:var(--red)}
       <div>
         <label>Web-extract model (blank = provider default)</label>
         <input type="text" id="aux-web-model" placeholder="google/gemini-flash-1.5" />
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>Compression provider</label>
+        <select id="aux-comp-prov">
+          <option value="auto">Auto</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="nous">Nous</option>
+          <option value="main">Main</option>
+        </select>
+      </div>
+      <div>
+        <label>Compression model (blank = provider default)</label>
+        <input type="text" id="aux-comp-model" placeholder="google/gemini-3-flash-preview" />
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>Session search provider</label>
+        <select id="aux-ss-prov">
+          <option value="auto">Auto</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="nous">Nous</option>
+          <option value="main">Main</option>
+        </select>
+      </div>
+      <div>
+        <label>Session search model (blank = provider default)</label>
+        <input type="text" id="aux-ss-model" placeholder="" />
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>MCP sampling provider</label>
+        <select id="aux-mcp-prov">
+          <option value="auto">Auto</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="nous">Nous</option>
+          <option value="main">Main</option>
+        </select>
+      </div>
+      <div>
+        <label>MCP sampling model (blank = provider default)</label>
+        <input type="text" id="aux-mcp-model" placeholder="" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Filesystem Checkpoints</div>
+    <p class="hint" style="margin-bottom:12px">Automatic snapshots before destructive file ops. Use <code>/rollback</code> to restore.</p>
+    <label class="toggle" style="margin-top:0">
+      <input type="checkbox" id="ckpt-enabled" />
+      <span>Enable automatic checkpoints</span>
+    </label>
+    <div class="grid2" style="margin-top:12px">
+      <div>
+        <label>Max snapshots to keep</label>
+        <input type="number" id="ckpt-max" value="50" min="1" max="500" />
       </div>
     </div>
   </div>
@@ -1658,6 +1760,10 @@ async function loadAgent() {
     document.getElementById('mem-userlim').value       = d.user_char_limit;
     document.getElementById('mem-nudge').value         = d.nudge_interval;
     document.getElementById('mem-skills-nudge').value  = d.skills_nudge_interval;
+    document.getElementById('ag-timezone').value       = d.timezone || '';
+    document.getElementById('ag-resume-display').value = d.display_resume || 'full';
+    document.getElementById('ag-fallback-provider').value = d.fallback_model_provider || '';
+    document.getElementById('ag-fallback-model').value    = d.fallback_model_model    || '';
     document.getElementById('tts-prov').value          = d.tts_provider;
     document.getElementById('tts-edge-voice').value    = d.tts_edge_voice;
     document.getElementById('tts-el-vid').value        = d.tts_el_voice_id;
@@ -1706,6 +1812,10 @@ async function saveAgent() {
       user_char_limit:          +document.getElementById('mem-userlim').value,
       nudge_interval:           +document.getElementById('mem-nudge').value,
       skills_nudge_interval:    +document.getElementById('mem-skills-nudge').value,
+      timezone:                 document.getElementById('ag-timezone').value,
+      display_resume:           document.getElementById('ag-resume-display').value,
+      fallback_model_provider:  document.getElementById('ag-fallback-provider').value,
+      fallback_model_model:     document.getElementById('ag-fallback-model').value,
       tts_provider:             document.getElementById('tts-prov').value,
       tts_edge_voice:           document.getElementById('tts-edge-voice').value,
       tts_el_voice_id:          document.getElementById('tts-el-vid').value,
@@ -1728,6 +1838,7 @@ async function loadTerminal() {
     document.getElementById('term-timeout').value       = d.timeout;
     document.getElementById('term-lifetime').value      = d.lifetime_seconds;
     document.getElementById('term-docker-img').value    = d.docker_image;
+    document.getElementById('term-docker-volumes').value = (d.docker_volumes || []).join('\n');
     document.getElementById('term-cpu').value           = d.container_cpu;
     document.getElementById('term-mem').value           = d.container_memory;
     document.getElementById('term-disk').value          = d.container_disk;
@@ -1765,6 +1876,7 @@ async function saveTerminal() {
       timeout:              +document.getElementById('term-timeout').value,
       lifetime_seconds:     +document.getElementById('term-lifetime').value,
       docker_image:         document.getElementById('term-docker-img').value,
+      docker_volumes:       document.getElementById('term-docker-volumes').value.split('\n').map(s=>s.trim()).filter(Boolean),
       daytona_image:        document.getElementById('term-daytona-img').value,
       container_cpu:        isDaytona ? +document.getElementById('term-daytona-cpu').value : +document.getElementById('term-cpu').value,
       container_memory:     isDaytona ? +document.getElementById('term-daytona-mem').value : +document.getElementById('term-mem').value,
@@ -1787,8 +1899,10 @@ async function saveTerminal() {
 async function loadTools() {
   try {
     const d = await api('GET', '/api/tools');
+    document.getElementById('fc-url').value        = d.firecrawl_url || '';
     document.getElementById('bb-proxies').checked  = d.browserbase_proxies;
     document.getElementById('bb-stealth').checked  = d.browserbase_stealth;
+    document.getElementById('bb-record').checked   = d.browser_record_sessions || false;
     document.getElementById('bb-stimeout').value   = d.browser_session_timeout;
     document.getElementById('bb-inactive').value   = d.browser_inactivity;
     document.getElementById('gh-app-id').value     = d.github_app_id;
@@ -1804,11 +1918,13 @@ async function saveTools() {
   try {
     await api('POST', '/api/tools', {
       firecrawl_key:           document.getElementById('fc-key').value,
+      firecrawl_url:           document.getElementById('fc-url').value,
       fal_key:                 document.getElementById('fal-key').value,
       browserbase_key:         document.getElementById('bb-key').value,
       browserbase_project:     document.getElementById('bb-project').value,
-      browserbase_proxies:     document.getElementById('bb-proxies').checked,
-      browserbase_stealth:     document.getElementById('bb-stealth').checked,
+      browserbase_proxies:       document.getElementById('bb-proxies').checked,
+      browserbase_stealth:       document.getElementById('bb-stealth').checked,
+      browser_record_sessions:   document.getElementById('bb-record').checked,
       browser_session_timeout: +document.getElementById('bb-stimeout').value,
       browser_inactivity:      +document.getElementById('bb-inactive').value,
       voice_openai_key:        document.getElementById('voai-key').value,
@@ -1890,10 +2006,19 @@ async function loadAdvanced() {
     document.getElementById('pts-signal').value        = pts.signal    || '';
     document.getElementById('pts-hass').value          = pts.homeassistant || '';
     // Auxiliary models
-    document.getElementById('aux-vis-prov').value      = d.aux_vision_provider  || 'auto';
-    document.getElementById('aux-vis-model').value     = d.aux_vision_model     || '';
-    document.getElementById('aux-web-prov').value      = d.aux_web_provider     || 'auto';
-    document.getElementById('aux-web-model').value     = d.aux_web_model        || '';
+    document.getElementById('aux-vis-prov').value      = d.aux_vision_provider         || 'auto';
+    document.getElementById('aux-vis-model').value     = d.aux_vision_model            || '';
+    document.getElementById('aux-web-prov').value      = d.aux_web_provider            || 'auto';
+    document.getElementById('aux-web-model').value     = d.aux_web_model               || '';
+    document.getElementById('aux-comp-prov').value     = d.aux_compression_provider    || 'auto';
+    document.getElementById('aux-comp-model').value    = d.aux_compression_model       || '';
+    document.getElementById('aux-ss-prov').value       = d.aux_session_search_provider || 'auto';
+    document.getElementById('aux-ss-model').value      = d.aux_session_search_model    || '';
+    document.getElementById('aux-mcp-prov').value      = d.aux_mcp_provider            || 'auto';
+    document.getElementById('aux-mcp-model').value     = d.aux_mcp_model               || '';
+    // Checkpoints
+    document.getElementById('ckpt-enabled').checked    = d.checkpoints_enabled         || false;
+    document.getElementById('ckpt-max').value          = d.checkpoints_max_snapshots   || 50;
     // Delegation
     document.getElementById('dlg-maxiter').value       = d.delegation_max_iter  || 50;
     document.getElementById('dlg-toolsets').value      = d.delegation_toolsets  || 'terminal,file,web';
@@ -1973,10 +2098,18 @@ async function saveAdvanced() {
         signal:        document.getElementById('pts-signal').value,
         homeassistant: document.getElementById('pts-hass').value,
       },
-      aux_vision_provider:   document.getElementById('aux-vis-prov').value,
-      aux_vision_model:      document.getElementById('aux-vis-model').value,
-      aux_web_provider:      document.getElementById('aux-web-prov').value,
-      aux_web_model:         document.getElementById('aux-web-model').value,
+      aux_vision_provider:          document.getElementById('aux-vis-prov').value,
+      aux_vision_model:             document.getElementById('aux-vis-model').value,
+      aux_web_provider:             document.getElementById('aux-web-prov').value,
+      aux_web_model:                document.getElementById('aux-web-model').value,
+      aux_compression_provider:     document.getElementById('aux-comp-prov').value,
+      aux_compression_model:        document.getElementById('aux-comp-model').value,
+      aux_session_search_provider:  document.getElementById('aux-ss-prov').value,
+      aux_session_search_model:     document.getElementById('aux-ss-model').value,
+      aux_mcp_provider:             document.getElementById('aux-mcp-prov').value,
+      aux_mcp_model:                document.getElementById('aux-mcp-model').value,
+      checkpoints_enabled:          document.getElementById('ckpt-enabled').checked,
+      checkpoints_max_snapshots:    +document.getElementById('ckpt-max').value,
       delegation_max_iter:   +document.getElementById('dlg-maxiter').value,
       delegation_toolsets:   document.getElementById('dlg-toolsets').value,
       delegation_model:      document.getElementById('dlg-model').value,

@@ -614,6 +614,10 @@ class AgentIn(BaseModel):
     user_char_limit:               int   = 1375
     nudge_interval:                int   = 10
     skills_nudge_interval:         int   = 15
+    timezone:                      str   = ""
+    display_resume:                str   = "full"
+    fallback_model_provider:       str   = ""
+    fallback_model_model:          str   = ""
     tts_provider:                  str   = "edge"
     tts_edge_voice:                str   = "en-US-AriaNeural"
     tts_el_voice_id:               str   = "pNInz6obpgDQGcFmaJgB"
@@ -654,6 +658,10 @@ async def get_agent():
         "user_char_limit":           mem.get("user_char_limit",         1375),
         "nudge_interval":            mem.get("nudge_interval",          10),
         "skills_nudge_interval":     sk.get("creation_nudge_interval",  15),
+        "timezone":                  cfg.get("timezone",                ""),
+        "display_resume":            d.get("resume_display",            "full"),
+        "fallback_model_provider":   cfg.get("fallback_model", {}).get("provider", ""),
+        "fallback_model_model":      cfg.get("fallback_model", {}).get("model",    ""),
         "tts_provider":              tts.get("provider",               "edge"),
         "tts_edge_voice":            tts.get("edge",       {}).get("voice",    "en-US-AriaNeural"),
         "tts_el_voice_id":           tts.get("elevenlabs", {}).get("voice_id", "pNInz6obpgDQGcFmaJgB"),
@@ -695,6 +703,15 @@ async def save_agent(a: AgentIn):
         "nudge_interval":       a.nudge_interval,
     })
     cfg.setdefault("skills", {}).update({"creation_nudge_interval": a.skills_nudge_interval})
+    cfg["timezone"] = a.timezone
+    cfg.setdefault("display", {}).update({"resume_display": a.display_resume})
+    if a.fallback_model_provider or a.fallback_model_model:
+        cfg["fallback_model"] = {
+            "provider": a.fallback_model_provider,
+            "model":    a.fallback_model_model,
+        }
+    elif "fallback_model" in cfg and not (a.fallback_model_provider or a.fallback_model_model):
+        cfg.pop("fallback_model", None)
     cfg.setdefault("tts", {}).update({
         "provider":    a.tts_provider,
         "edge":        {"voice": a.tts_edge_voice},
@@ -708,11 +725,12 @@ async def save_agent(a: AgentIn):
 
 # ── Terminal ──────────────────────────────────────────────────
 class TerminalIn(BaseModel):
-    backend:              str  = "local"
-    cwd:                  str  = "."
-    timeout:              int  = 180
-    lifetime_seconds:     int  = 300
-    docker_image:         str  = "nikolaik/python-nodejs:python3.11-nodejs20"
+    backend:              str       = "local"
+    cwd:                  str       = "."
+    timeout:              int       = 180
+    lifetime_seconds:     int       = 300
+    docker_image:         str       = "nikolaik/python-nodejs:python3.11-nodejs20"
+    docker_volumes:       List[str] = []
     modal_image:          str  = "nikolaik/python-nodejs:python3.11-nodejs20"
     singularity_image:    str  = "docker://nikolaik/python-nodejs:python3.11-nodejs20"
     daytona_image:        str  = "nikolaik/python-nodejs:python3.11-nodejs20"
@@ -736,6 +754,7 @@ async def get_terminal():
         "timeout":              t.get("timeout",              180),
         "lifetime_seconds":     t.get("lifetime_seconds",     300),
         "docker_image":         t.get("docker_image",         "nikolaik/python-nodejs:python3.11-nodejs20"),
+        "docker_volumes":       t.get("docker_volumes",       []),
         "modal_image":          t.get("modal_image",          "nikolaik/python-nodejs:python3.11-nodejs20"),
         "singularity_image":    t.get("singularity_image",    "docker://nikolaik/python-nodejs:python3.11-nodejs20"),
         "daytona_image":        t.get("daytona_image",        "nikolaik/python-nodejs:python3.11-nodejs20"),
@@ -763,6 +782,7 @@ async def save_terminal(t: TerminalIn):
     if t.backend == "docker":
         term.update({
             "docker_image":         t.docker_image,
+            "docker_volumes":       t.docker_volumes,
             "container_cpu":        t.container_cpu,
             "container_memory":     t.container_memory,
             "container_disk":       t.container_disk,
@@ -796,7 +816,9 @@ async def save_terminal(t: TerminalIn):
 # ── Tools ─────────────────────────────────────────────────────
 class ToolsIn(BaseModel):
     firecrawl_key:            str  = ""
+    firecrawl_url:            str  = ""
     fal_key:                  str  = ""
+    browser_record_sessions:  bool = False
     browserbase_key:          str  = ""
     browserbase_project:      str  = ""
     browserbase_proxies:      bool = True
@@ -821,7 +843,9 @@ async def get_tools():
     def isset(k): return bool(env.get(k))
     return {
         "firecrawl_key_set":           isset("FIRECRAWL_API_KEY"),
+        "firecrawl_url":               env.get("FIRECRAWL_API_URL", ""),
         "fal_key_set":                 isset("FAL_KEY"),
+        "browser_record_sessions":     read_config().get("browser", {}).get("record_sessions", False),
         "browserbase_key_set":         isset("BROWSERBASE_API_KEY"),
         "browserbase_project_set":     isset("BROWSERBASE_PROJECT_ID"),
         "browserbase_proxies":         _bool_env(env, "BROWSERBASE_PROXIES", True),
@@ -845,6 +869,12 @@ async def get_tools():
 async def save_tools(t: ToolsIn):
     updates: dict = {}
     if t.firecrawl_key:         updates["FIRECRAWL_API_KEY"]           = t.firecrawl_key
+    if t.firecrawl_url:         updates["FIRECRAWL_API_URL"]           = t.firecrawl_url
+    patch_env(**updates)
+    cfg = read_config()
+    cfg.setdefault("browser", {})["record_sessions"] = t.browser_record_sessions
+    save_config(cfg)
+    updates = {}
     if t.fal_key:               updates["FAL_KEY"]                     = t.fal_key
     if t.browserbase_key:       updates["BROWSERBASE_API_KEY"]         = t.browserbase_key
     if t.browserbase_project:   updates["BROWSERBASE_PROJECT_ID"]      = t.browserbase_project
@@ -885,6 +915,16 @@ class AdvancedIn(BaseModel):
     delegation_toolsets:       str            = "terminal,file,web"
     delegation_model:          str            = ""
     delegation_provider:       str            = ""
+    # Checkpoints
+    checkpoints_enabled:       bool           = False
+    checkpoints_max_snapshots: int            = 50
+    # Extra auxiliary models
+    aux_compression_provider:  str            = "auto"
+    aux_compression_model:     str            = ""
+    aux_session_search_provider: str          = "auto"
+    aux_session_search_model:  str            = ""
+    aux_mcp_provider:          str            = "auto"
+    aux_mcp_model:             str            = ""
     # Code execution
     code_exec_timeout:         int            = 300
     code_exec_max_calls:       int            = 50
@@ -910,6 +950,7 @@ async def get_advanced():
     dlg  = cfg.get("delegation", {})
     ce   = cfg.get("code_execution", {})
     pts  = cfg.get("platform_toolsets", {})
+    ckpt = cfg.get("checkpoints", {})
     def _pts_str(k): v = pts.get(k, []); return ",".join(v) if isinstance(v, list) else str(v)
     dlg_ts = dlg.get("default_toolsets", ["terminal", "file", "web"])
     return {
@@ -917,6 +958,8 @@ async def get_advanced():
         "compression_threshold":   comp.get("threshold",         0.50),
         "compression_model":       comp.get("summary_model",    "google/gemini-flash-1.5"),
         "compression_provider":    comp.get("summary_provider", "auto"),
+        "checkpoints_enabled":     ckpt.get("enabled",          False),
+        "checkpoints_max_snapshots": ckpt.get("max_snapshots",  50),
         "toolsets":                ",".join(ts) if isinstance(ts, list) else str(ts),
         "platform_toolsets": {
             "cli":           _pts_str("cli"),
@@ -927,10 +970,16 @@ async def get_advanced():
             "signal":        _pts_str("signal"),
             "homeassistant": _pts_str("homeassistant"),
         },
-        "aux_vision_provider":     aux.get("vision",      {}).get("provider", "auto"),
-        "aux_vision_model":        aux.get("vision",      {}).get("model",    ""),
-        "aux_web_provider":        aux.get("web_extract", {}).get("provider", "auto"),
-        "aux_web_model":           aux.get("web_extract", {}).get("model",    ""),
+        "aux_vision_provider":           aux.get("vision",         {}).get("provider", "auto"),
+        "aux_vision_model":              aux.get("vision",         {}).get("model",    ""),
+        "aux_web_provider":              aux.get("web_extract",    {}).get("provider", "auto"),
+        "aux_web_model":                 aux.get("web_extract",    {}).get("model",    ""),
+        "aux_compression_provider":      aux.get("compression",    {}).get("provider", "auto"),
+        "aux_compression_model":         aux.get("compression",    {}).get("model",    ""),
+        "aux_session_search_provider":   aux.get("session_search", {}).get("provider", "auto"),
+        "aux_session_search_model":      aux.get("session_search", {}).get("model",    ""),
+        "aux_mcp_provider":              aux.get("mcp",            {}).get("provider", "auto"),
+        "aux_mcp_model":                 aux.get("mcp",            {}).get("model",    ""),
         "delegation_max_iter":     dlg.get("max_iterations",     50),
         "delegation_toolsets":     ",".join(dlg_ts) if isinstance(dlg_ts, list) else str(dlg_ts),
         "delegation_model":        dlg.get("model",               ""),
@@ -967,10 +1016,19 @@ async def save_advanced(a: AdvancedIn):
         if v: pts[plat] = _split(v)
     if pts: cfg["platform_toolsets"] = pts
 
+    # Checkpoints
+    cfg["checkpoints"] = {
+        "enabled":       a.checkpoints_enabled,
+        "max_snapshots": a.checkpoints_max_snapshots,
+    }
+
     # Auxiliary models
     cfg["auxiliary"] = {
-        "vision":      {"provider": a.aux_vision_provider, "model": a.aux_vision_model},
-        "web_extract": {"provider": a.aux_web_provider,    "model": a.aux_web_model},
+        "vision":         {"provider": a.aux_vision_provider,         "model": a.aux_vision_model},
+        "web_extract":    {"provider": a.aux_web_provider,            "model": a.aux_web_model},
+        "compression":    {"provider": a.aux_compression_provider,    "model": a.aux_compression_model},
+        "session_search": {"provider": a.aux_session_search_provider, "model": a.aux_session_search_model},
+        "mcp":            {"provider": a.aux_mcp_provider,            "model": a.aux_mcp_model},
     }
 
     # Delegation
