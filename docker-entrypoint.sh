@@ -72,6 +72,12 @@ compression:
   threshold: 0.85
 EOF
 
+# ── Bootstrap auth.json from env var (Nous Portal OAuth token) ─
+if [ -n "${HERMES_AUTH_JSON:-}" ]; then
+  echo "$HERMES_AUTH_JSON" | base64 -d > "$HERMES_HOME/auth.json"
+  echo "[entrypoint] Loaded auth.json from HERMES_AUTH_JSON"
+fi
+
 # ── SOUL.md placeholder ───────────────────────────────────────
 if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
   echo "You are Hermes, a helpful AI assistant." > "$HERMES_HOME/SOUL.md"
