@@ -2781,16 +2781,40 @@ class AIAgent:
         identically to native function-calling responses.
         """
         content = assistant_message.content or ""
-        logging.info("[nous_parse] Content length=%d, preview=%r", len(content), content[:200])
+        logging.info("[nous_parse] Content length=%d, preview=%r", len(content), content[:300])
 
-        if "<tool_call>" not in content:
-            logging.info("[nous_parse] No <tool_call> tag found in content")
-            return
+        # Check for tool_call tags - handle both complete and partial tags
+        has_open = "<tool_call>" in content
+        has_close = "</tool_call>" in content
+        if not has_open and not has_close:
+            # Also try to detect bare JSON tool call pattern without XML tags
+            # e.g. {"name": "...", "arguments": {...}}
+            if not (content.strip().startswith("{") and '"name"' in content and '"arguments"' in content):
+                logging.info("[nous_parse] No tool_call indicators found in content")
+                return
 
         import re as _re
-        _TC_RE = _re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", _re.DOTALL)
-        matches = _TC_RE.findall(content)
-        logging.info("[nous_parse] Regex matched %d tool_call block(s)", len(matches))
+
+        matches = []
+        if has_open and has_close:
+            # Standard: <tool_call>JSON</tool_call>
+            _TC_RE = _re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", _re.DOTALL)
+            matches = _TC_RE.findall(content)
+        elif has_close and not has_open:
+            # Model omitted opening tag: JSON\n</tool_call>
+            _TC_RE = _re.compile(r"((?:\{[^}]*\"name\"[^}]*\}|\{[\s\S]*?\}))\s*</tool_call>", _re.DOTALL)
+            matches = _TC_RE.findall(content)
+        elif has_open and not has_close:
+            # Model omitted closing tag: <tool_call>\nJSON
+            _TC_RE = _re.compile(r"<tool_call>\s*(\{[\s\S]*?\})", _re.DOTALL)
+            matches = _TC_RE.findall(content)
+        else:
+            # Bare JSON — try to extract {"name": ..., "arguments": ...}
+            _TC_RE = _re.compile(r'(\{"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}\s*\})', _re.DOTALL)
+            matches = _TC_RE.findall(content)
+
+        logging.info("[nous_parse] Regex matched %d tool_call block(s) (open=%s, close=%s)",
+                     len(matches), has_open, has_close)
         if not matches:
             return
 
@@ -2844,8 +2868,16 @@ class AIAgent:
             return
 
         logging.info("[nous_parse] Successfully parsed %d tool call(s)", len(tool_calls))
-        # Strip tool_call XML from displayed content
-        clean = _TC_RE.sub("", content).strip()
+        # Strip tool_call XML and JSON from displayed content
+        clean = content
+        # Remove complete <tool_call>...</tool_call> blocks
+        clean = _re.sub(r"<tool_call>\s*.*?\s*</tool_call>", "", clean, flags=_re.DOTALL)
+        # Remove partial: JSON...</tool_call> (missing opening tag)
+        clean = _re.sub(r'\{[^}]*"name"[^}]*\}\s*</tool_call>', "", clean, flags=_re.DOTALL)
+        # Remove orphaned </tool_call> tags
+        clean = clean.replace("</tool_call>", "")
+        # Remove orphaned <tool_call> tags
+        clean = clean.replace("<tool_call>", "")
         # Also strip any <think> blocks from displayed content
         clean = _re.sub(r"<think>.*?</think>", "", clean, flags=_re.DOTALL).strip()
         assistant_message.content = clean if clean else None
