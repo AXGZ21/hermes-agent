@@ -2726,9 +2726,11 @@ class AIAgent:
         api_kwargs = {
             "model": self.model,
             "messages": api_messages,
-            "tools": None if _is_nous else (self.tools if self.tools else None),
             "timeout": 900.0,
         }
+        # Nous Portal: tools are injected into system prompt instead
+        if not _is_nous and self.tools:
+            api_kwargs["tools"] = self.tools
 
         if self.max_tokens is not None:
             api_kwargs.update(self._max_tokens_param(self.max_tokens))
