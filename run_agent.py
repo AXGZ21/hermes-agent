@@ -2846,11 +2846,41 @@ class AIAgent:
                 logging.warning("[nous_parse] Match %d: parsed to non-dict type %s", idx, type(tc_data))
                 continue
             name = tc_data.get("name", "")
-            arguments = tc_data.get("arguments", {})
             if not name:
                 logging.warning("[nous_parse] Match %d: no 'name' field", idx)
                 continue
-            logging.info("[nous_parse] Match %d: tool=%s", idx, name)
+
+            # Get arguments - model may use "arguments" (correct) or "content" (confused)
+            arguments = tc_data.get("arguments")
+            if arguments is None:
+                # Model used "content" key instead of "arguments" - common confusion
+                # when it sees <tool_response>{"name":"..","content":".."}
+                content_val = tc_data.get("content")
+                if content_val is not None:
+                    # Check if this looks like a hallucinated tool response rather
+                    # than actual tool arguments (e.g. {"success": false, "error": ...})
+                    if isinstance(content_val, str):
+                        try:
+                            parsed_content = json.loads(content_val)
+                            if isinstance(parsed_content, dict) and ("success" in parsed_content or "error" in parsed_content):
+                                logging.warning("[nous_parse] Match %d: skipping hallucinated tool response for %s", idx, name)
+                                continue
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                        # Use content as a single-argument tool call
+                        arguments = {"content": content_val}
+                    elif isinstance(content_val, dict):
+                        if "success" in content_val or "error" in content_val:
+                            logging.warning("[nous_parse] Match %d: skipping hallucinated tool response for %s", idx, name)
+                            continue
+                        arguments = content_val
+                    else:
+                        arguments = {"content": str(content_val)}
+                else:
+                    arguments = {}
+
+            logging.info("[nous_parse] Match %d: tool=%s, args_keys=%s", idx, name,
+                         list(arguments.keys()) if isinstance(arguments, dict) else "str")
             tool_calls.append(
                 ChatCompletionMessageToolCall(
                     id=f"call_{uuid.uuid4().hex[:12]}",
@@ -2964,9 +2994,12 @@ class AIAgent:
                             break
                 tool_name = tool_name or "tool"
                 tool_content = msg.get("content", "")
+                # Use a clearly different format from <tool_call> to avoid model confusion.
+                # <tool_call> uses {"name": ..., "arguments": ...}
+                # <tool_response> uses plain text format: "tool_name: result"
                 pending_tool_responses.append(
                     f"<tool_response>\n"
-                    f'{{"name": "{tool_name}", "content": {json.dumps(tool_content, ensure_ascii=False)}}}\n'
+                    f"{tool_name}: {tool_content}\n"
                     f"</tool_response>"
                 )
 
