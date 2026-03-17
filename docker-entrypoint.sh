@@ -187,10 +187,14 @@ if [ -n "${TTYD_PASSWORD:-}" ]; then
   TTYD_USER="${TTYD_USERNAME:-hermes}"
   TTYD_PORT="${TTYD_PORT:-8080}"
   # Use tmux so the session survives tab closes / reconnects
+  # -t options configure xterm.js clipboard and UI behaviour
   ttyd \
     --port "$TTYD_PORT" \
     --credential "$TTYD_USER:$TTYD_PASSWORD" \
     --writable \
+    -t "disableLeaveAlert=true" \
+    -t "rightClickSelectsWord=false" \
+    -t "macOptionIsMeta=true" \
     tmux new-session -A -s hermes &
   echo "[entrypoint] Web terminal running on port $TTYD_PORT (user: $TTYD_USER)"
 fi
