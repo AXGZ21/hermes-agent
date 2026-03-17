@@ -18,6 +18,11 @@ RUN apt-get update \
         libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
+# Install ttyd for browser-based web terminal
+RUN curl -fsSL https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
+        -o /usr/local/bin/ttyd \
+    && chmod +x /usr/local/bin/ttyd
+
 WORKDIR /app
 
 # Copy dependency manifests first so Docker layer cache is reused

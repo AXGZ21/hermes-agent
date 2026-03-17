@@ -181,6 +181,19 @@ PYEOF
 echo "[entrypoint] Hermes home: $HERMES_HOME"
 echo "[entrypoint] Provider: $PROVIDER"
 echo "[entrypoint] Model: ${LLM_MODEL:-anthropic/claude-opus-4-6}"
+
+# ── Start web terminal (ttyd) if password is set ─────────────
+if [ -n "${TTYD_PASSWORD:-}" ]; then
+  TTYD_USER="${TTYD_USERNAME:-hermes}"
+  TTYD_PORT="${TTYD_PORT:-8080}"
+  ttyd \
+    --port "$TTYD_PORT" \
+    --credential "$TTYD_USER:$TTYD_PASSWORD" \
+    --writable \
+    bash &
+  echo "[entrypoint] Web terminal running on port $TTYD_PORT (user: $TTYD_USER)"
+fi
+
 echo "[entrypoint] Starting gateway..."
 
 # ── Start gateway directly ────────────────────────────────────

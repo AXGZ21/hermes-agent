@@ -185,3 +185,19 @@ defaultValue = "false"
 name = "FORCE_AUTH_RESET"
 description = "Set to true to overwrite auth.json from HERMES_AUTH_JSON on next boot."
 defaultValue = "false"
+
+# ── Web Terminal (ttyd) ───────────────────────────────────────
+
+[[deploy.envVars]]
+name = "TTYD_PASSWORD"
+description = "Password for the browser-based terminal. Set this to enable it (visit your Railway service URL on port 8080)."
+
+[[deploy.envVars]]
+name = "TTYD_USERNAME"
+description = "Username for the browser-based terminal."
+defaultValue = "hermes"
+
+[[deploy.envVars]]
+name = "TTYD_PORT"
+description = "Port the web terminal listens on."
+defaultValue = "8080"
