@@ -186,11 +186,12 @@ echo "[entrypoint] Model: ${LLM_MODEL:-anthropic/claude-opus-4-6}"
 if [ -n "${TTYD_PASSWORD:-}" ]; then
   TTYD_USER="${TTYD_USERNAME:-hermes}"
   TTYD_PORT="${TTYD_PORT:-8080}"
+  # Use tmux so the session survives tab closes / reconnects
   ttyd \
     --port "$TTYD_PORT" \
     --credential "$TTYD_USER:$TTYD_PASSWORD" \
     --writable \
-    bash &
+    tmux new-session -A -s hermes &
   echo "[entrypoint] Web terminal running on port $TTYD_PORT (user: $TTYD_USER)"
 fi
 

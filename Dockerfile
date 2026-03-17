@@ -16,6 +16,7 @@ RUN apt-get update \
         curl \
         ffmpeg \
         libsndfile1 \
+        tmux \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ttyd for browser-based web terminal
