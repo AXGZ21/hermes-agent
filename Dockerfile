@@ -48,6 +48,9 @@ RUN git submodule update --init --recursive 2>/dev/null || \
 # Persistent workspace directory mounted by the terminal tool
 RUN mkdir -p /workspace
 
+# tmux config for clipboard passthrough (OSC52) and mouse support
+COPY .tmux.conf /root/.tmux.conf
+
 # Entrypoint script writes ~/.hermes/.env and config.yaml from Railway env
 # vars, then starts the gateway.
 RUN chmod +x /app/docker-entrypoint.sh
