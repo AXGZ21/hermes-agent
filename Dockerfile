@@ -29,11 +29,15 @@ WORKDIR /app
 # when only source files change.
 COPY pyproject.toml requirements.txt ./
 
-# Install hermes-agent with all extras (messaging, cron, etc.)
-RUN pip install --no-cache-dir -e ".[messaging,cron]"
+# Install dependencies only (no -e yet, so cache is reused when source changes)
+RUN pip install --no-cache-dir -r requirements.txt 2>/dev/null || true
 
-# Copy the full source after deps are installed (faster rebuilds)
+# Copy the full source
 COPY . .
+
+# Editable install now that all source is present — ensures hermes_cli and all
+# modules are discoverable from /app
+RUN pip install --no-cache-dir -e ".[messaging,cron,cli]"
 
 # Initialize git submodules (mini-swe-agent etc.).
 # Falls back gracefully on shallow clones where submodules may be unavailable.
