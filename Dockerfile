@@ -38,7 +38,8 @@ COPY . .
 
 # Editable install now that all source is present — ensures hermes_cli and all
 # modules are discoverable from /app
-RUN pip install --no-cache-dir -e ".[messaging,cron,cli]"
+RUN pip install --no-cache-dir -e ".[messaging,cron,cli]" && \
+    pip install --no-cache-dir fastapi "uvicorn[standard]"
 
 # Initialize git submodules (mini-swe-agent etc.).
 # Falls back gracefully on shallow clones where submodules may be unavailable.

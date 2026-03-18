@@ -199,6 +199,12 @@ if [ -n "${TTYD_PASSWORD:-}" ]; then
   echo "[entrypoint] Web terminal running on port $TTYD_PORT (user: $TTYD_USER)"
 fi
 
+# ── Start WebAPI server for hermes-workspace ──────────────────
+export HERMES_WEBAPI_HOST=0.0.0.0
+export HERMES_WEBAPI_PORT="${HERMES_WEBAPI_PORT:-8642}"
+python -m webapi &
+echo "[entrypoint] WebAPI running on port $HERMES_WEBAPI_PORT"
+
 echo "[entrypoint] Starting gateway..."
 
 # ── Start gateway directly ────────────────────────────────────
